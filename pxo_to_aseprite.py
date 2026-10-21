@@ -1,9 +1,9 @@
 """Converts Pixelorama .pxo projects to Aseprite .aseprite files, beside the
 originals. The .pxo files are only read.
 
-    python tools/pxo_to_aseprite/pxo_to_aseprite.py art/renault art/road_raider
-    python tools/pxo_to_aseprite/pxo_to_aseprite.py art/globule/globule.pxo --out D:/aseprite
-    python tools/pxo_to_aseprite/pxo_to_aseprite.py ... --force
+    python pxo_to_aseprite.py art/hero art/enemy
+    python pxo_to_aseprite.py art/slime/slime.pxo --out D:/aseprite
+    python pxo_to_aseprite.py ... --force
 
 Or double-click pxo_to_aseprite_gui.pyw (or the .exe build.bat makes) and
 drop files and folders on it.
@@ -22,7 +22,8 @@ batch mode), so the file is Aseprite's own. Each result is read back
 pixel for pixel, the durations and the tags. A file that does not match is
 reported and removed.
 
-ASEPRITE can point at Aseprite.exe; otherwise the Steam install is used.
+ASEPRITE can point at Aseprite.exe; otherwise the usual install folders
+(Steam, Program Files) are tried.
 """
 import json
 import os
@@ -40,13 +41,27 @@ import aseprite_file  # noqa: E402
 
 # Built into an .exe, the Lua script is unpacked beside the bundled code.
 HERE = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
-STEAM = r'C:\Program Files (x86)\Steam\steamapps\common\Aseprite\Aseprite.exe'
+INSTALLS = [
+    r'C:\Program Files (x86)\Steam\steamapps\common\Aseprite\Aseprite.exe',
+    r'C:\Program Files\Steam\steamapps\common\Aseprite\Aseprite.exe',
+    r'C:\Program Files\Aseprite\Aseprite.exe',
+    r'C:\Program Files (x86)\Aseprite\Aseprite.exe',
+    os.path.expandvars(r'%LOCALAPPDATA%\Programs\Aseprite\Aseprite.exe'),
+]
+
+
+def find_aseprite():
+    """Aseprite.exe from ASEPRITE or the usual install folders, or None."""
+    for exe in [os.environ.get('ASEPRITE', '')] + INSTALLS:
+        if exe and os.path.isfile(exe):
+            return exe
+    return None
 
 
 def aseprite_exe():
-    exe = os.environ.get('ASEPRITE', STEAM)
-    if not os.path.exists(exe):
-        raise RuntimeError('Aseprite not found at %s; set ASEPRITE to Aseprite.exe.' % exe)
+    exe = find_aseprite()
+    if exe is None:
+        raise RuntimeError('Aseprite not found; set ASEPRITE to Aseprite.exe.')
     return exe
 
 

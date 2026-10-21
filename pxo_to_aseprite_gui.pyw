@@ -79,6 +79,9 @@ class App:
         out.pack(fill='x', padx=16, pady=(12, 0))
         tk.Label(out, text='Save to', bg=CHARCOAL, fg=DIM, font=('Segoe UI', 10)).pack(side='left')
         self.out_dir = tk.StringVar(value=settings.get('out_dir', ''))
+        self.aseprite = settings.get('aseprite', '')
+        if self.aseprite and os.path.isfile(self.aseprite) and not os.environ.get('ASEPRITE'):
+            os.environ['ASEPRITE'] = self.aseprite
         tk.Entry(out, textvariable=self.out_dir, bg=PANEL, fg=BONE, insertbackground=BONE, relief='flat',
                  font=('Segoe UI', 10), highlightthickness=1, highlightbackground=LINE,
                  highlightcolor=EMBER).pack(side='left', fill='x', expand=True, padx=8, ipady=3)
@@ -131,7 +134,21 @@ class App:
         if folder:
             self.out_dir.set(folder)
 
+    def find_aseprite(self):
+        """Asks where Aseprite is when it is not in a usual folder."""
+        if conv.find_aseprite():
+            return True
+        exe = filedialog.askopenfilename(title='Where is Aseprite.exe?',
+                                         filetypes=[('Aseprite', 'Aseprite.exe'), ('Programs', '*.exe')])
+        if not exe:
+            self.write('Aseprite is needed to write the files. Drop again to look for it.', 'bad')
+            return False
+        os.environ['ASEPRITE'] = self.aseprite = exe
+        return True
+
     def queue(self, paths):
+        if paths and not self.find_aseprite():
+            return
         files = conv.targets(list(paths), recurse=True)
         if paths and not files:
             self.write('No .pxo files in what was dropped.', 'dim')
@@ -167,7 +184,7 @@ class App:
         self.root.after(100, self.pump)
 
     def close(self):
-        save_settings({'out_dir': self.out_dir.get().strip()})
+        save_settings({'out_dir': self.out_dir.get().strip(), 'aseprite': self.aseprite})
         self.root.destroy()
 
 
