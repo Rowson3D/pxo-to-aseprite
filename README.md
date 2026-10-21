@@ -1,65 +1,63 @@
 # pxo to Aseprite
 
-Moving from Pixelorama to Aseprite? This little tool brings your work with you.
+Converts Pixelorama `.pxo` files to Aseprite `.aseprite` files. The `.pxo` files are read only.
 
-Pixelorama saves projects as `.pxo` files, and Aseprite can't open them. You could export every animation as PNG strips and rebuild your layers and tags by hand, but that gets old fast once you have more than a couple of sprites. Drop your `.pxo` files on this window instead and you get real `.aseprite` projects back, with layers, frames, timing and tags all in place, ready to keep working on.
+## Converted
 
-Your original `.pxo` files are only ever read, never changed. So you can try Aseprite, keep using Pixelorama, or go back and forth while you decide.
+- Layers: name, order, visibility, opacity
+- Frames, with per-frame duration
+- Tags: name and frame range
 
-## What comes across
+Not converted: clipping masks, layer effects, reference images, palettes.
 
-- **Layers:** names, order, visibility and opacity
-- **Frames:** every frame, each with its own duration
-- **Tags:** your animation ranges, by name
+## Method
 
-Some things don't make the trip, because Aseprite has no direct match for them: clipping masks, layer effects, reference images and saved palettes. Everything you actually drew comes across exactly.
+1. The `.pxo` is unpacked to one PNG per layer per frame, plus a manifest.
+2. Aseprite runs `aseprite_build.lua` in batch mode to build and save the `.aseprite`.
+3. The output is read back with `aseprite_file.py` and compared to the `.pxo`: pixels on every layer of every frame, frame durations, and tags. If any of them differ, the output file is deleted and the differences are listed.
 
-## Is it exact?
+## Requirements
 
-Yes, and it checks. Aseprite itself writes each file, so it's a proper Aseprite project rather than an imitation. The tool then reads the new file back and compares it to your `.pxo`, pixel for pixel on every layer of every frame, along with the timings and tags. If anything doesn't match, the file is deleted and the window tells you what went wrong. That way you never end up with a quietly broken copy.
+- Windows
+- Aseprite. Searched for in the Steam and Program Files folders. If it isn't found, the window asks for `Aseprite.exe` and saves the path. You can also set the `ASEPRITE` environment variable to its path.
 
-## Getting started
+## Exe
 
-1. Download `pxo_to_aseprite.exe` from the [Releases](../../releases) page. No install is needed.
-2. Run it. Windows may warn that the app is from an unknown publisher, because it isn't code-signed. Click **More info**, then **Run anyway**.
-3. Drop `.pxo` files, or whole folders, onto the window. Folders are searched all the way down.
+Download `pxo_to_aseprite.exe` from Releases. It isn't code-signed, so SmartScreen may block it: choose More info, then Run anyway.
 
-You'll need Aseprite installed, since it does the writing. The tool looks for it in the usual places (Steam, Program Files). If it can't find it, it asks you once and remembers.
+Drop `.pxo` files or folders on the window. Folders are searched recursively.
 
-### Where the files go
+- **Save to**: the output folder. If empty, each output is written beside its `.pxo`.
+- An `.aseprite` with a newer modified time than its `.pxo` is skipped. Tick the replace box to overwrite it.
 
-Fill in **Save to** to collect everything in one folder. Leave it empty and each `.aseprite` is saved right next to its `.pxo`.
+Settings are stored in `%USERPROFILE%\.pxo_to_aseprite.json`.
 
-### Converting again later
-
-Say you've already converted a sprite and started editing the `.aseprite`. If you drop the `.pxo` again, your Aseprite version won't be overwritten: any `.aseprite` saved more recently than its `.pxo` is left alone. Tick **Replace .aseprite files saved later than their .pxo** if you really do want a fresh copy.
-
-## Running from source
-
-If you'd rather run the Python directly:
+## Source
 
 ```
 py -m pip install --user pillow numpy tkinterdnd2
 ```
 
-Then double-click `pxo_to_aseprite_gui.pyw` for the window, or use the command line:
+Window: `pxo_to_aseprite_gui.pyw`
+
+Command line:
 
 ```
-python pxo_to_aseprite.py my_art_folder
-python pxo_to_aseprite.py hero.pxo enemy.pxo --out D:/aseprite
-python pxo_to_aseprite.py my_art_folder --force
+python pxo_to_aseprite.py <files or folders> [--out <folder>] [--force]
 ```
 
-`--force` replaces `.aseprite` files even if they're newer. To point at an Aseprite install the tool can't find, set the `ASEPRITE` environment variable to the full path of `Aseprite.exe`.
+`--force` overwrites newer `.aseprite` files. Folders are not searched recursively on the command line.
 
-## Building the exe yourself
+## Build
 
-Run `build.bat`. It installs what it needs and leaves `pxo_to_aseprite.exe` in the `dist` folder.
+`build.bat` installs Pillow, NumPy, tkinterdnd2 and PyInstaller if they're missing, then writes `dist\pxo_to_aseprite.exe`.
 
-## What's inside
+## Files
 
-- `pxo_to_aseprite_gui.pyw`: the drag-and-drop window
-- `pxo_to_aseprite.py`: reads the `.pxo`, hands it to Aseprite and checks the result
-- `aseprite_build.lua`: the script Aseprite runs to build each file
-- `aseprite_file.py`: reads `.aseprite` files, used for the check
-- `build.bat`: builds the standalone exe
+| File | Purpose |
+| --- | --- |
+| `pxo_to_aseprite.py` | `.pxo` reader, Aseprite call, output check, command line |
+| `aseprite_build.lua` | Builds the sprite from the manifest |
+| `aseprite_file.py` | `.aseprite` reader (RGBA) |
+| `pxo_to_aseprite_gui.pyw` | Drop window |
+| `build.bat` | PyInstaller build |
